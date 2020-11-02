@@ -8,7 +8,6 @@ It is [STNS](https://stns.jp) Client Library for Go.
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/STNS/libstns-go/libstns"
@@ -26,6 +25,7 @@ func main() {
 		panic(err)
 	}
 	pp.Println(user)
+
 	signature, err := stns.Sign([]byte("secret test"))
 	if err != nil {
 		panic(err)
