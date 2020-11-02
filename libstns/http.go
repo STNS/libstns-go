@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-var version string
+var version = "0.0.1"
 
 type TLS struct {
 	CA   string
@@ -51,8 +52,12 @@ type Response struct {
 }
 
 func NewHttp(endpoint string, opt *HttpOptions) *Http {
+	if opt == nil {
+		opt = &HttpOptions{}
+	}
+
 	if opt.UserAgent == "" {
-		opt.UserAgent = "libstns-go"
+		opt.UserAgent = fmt.Sprintf("%s/%s", "libstns-go", version)
 	}
 
 	if opt.RequestTimeout == 0 {
@@ -68,8 +73,19 @@ func NewHttp(endpoint string, opt *HttpOptions) *Http {
 		opt:         opt,
 	}
 }
+func (h *Http) RequestURL(requestPath, query string) (*url.URL, error) {
+	u, err := url.Parse(h.ApiEndpoint)
+	if err != nil {
+		return nil, err
+	}
 
-func (h *Http) Request(path string) (*Response, error) {
+	u.Path = path.Join(u.Path, requestPath)
+	u.RawQuery = query
+	return u, nil
+
+}
+
+func (h *Http) Request(path, query string) (*Response, error) {
 	supportHeaders := []string{
 		"user-highest-id",
 		"user-lowest-id",
@@ -77,7 +93,12 @@ func (h *Http) Request(path string) (*Response, error) {
 		"group-lowest-id",
 	}
 
-	req, err := http.NewRequest("GET", path, nil)
+	u, err := h.RequestURL(path, query)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		logrus.Errorf("make http request error:%s", err.Error())
 		return nil, err
@@ -86,17 +107,19 @@ func (h *Http) Request(path string) (*Response, error) {
 	h.setHeaders(req)
 	h.setBasicAuth(req)
 
-	tc, err := h.tlsConfig()
-	if err != nil {
-		logrus.Errorf("make tls config error:%s", err.Error())
-		return nil, err
-	}
-
 	tr := &http.Transport{
-		TLSClientConfig: tc,
 		Dial: (&net.Dialer{
 			Timeout: time.Duration(h.opt.RequestTimeout) * time.Second,
 		}).Dial,
+	}
+	if strings.Index(h.ApiEndpoint, "https") == 0 {
+		tc, err := h.tlsConfig()
+		if err != nil {
+			logrus.Errorf("make tls config error:%s", err.Error())
+			return nil, err
+		}
+
+		tr.TLSClientConfig = tc
 	}
 
 	tr.Proxy = http.ProxyFromEnvironment
@@ -152,7 +175,7 @@ func (h *Http) setHeaders(req *http.Request) {
 	for k, v := range h.opt.HttpHeaders {
 		req.Header.Add(k, v)
 	}
-	req.Header.Set("User-Agent", fmt.Sprintf("%s/%s", h.opt.UserAgent, version))
+	req.Header.Set("User-Agent", h.opt.UserAgent)
 
 	if h.opt.AuthToken != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("token %s", h.opt.AuthToken))
