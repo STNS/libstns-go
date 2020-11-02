@@ -7,8 +7,6 @@ import (
 	"os"
 	"reflect"
 	"testing"
-
-	"github.com/k0kubun/pp"
 )
 
 func TestClient_Request(t *testing.T) {
@@ -52,7 +50,7 @@ func TestClient_Request(t *testing.T) {
 				fmt.Fprintf(w, tt.responseBody)
 			}))
 			defer ts.Close()
-			h := &Client{
+			h := &client{
 				ApiEndpoint: ts.URL,
 				opt:         tt.opt,
 			}
@@ -68,7 +66,7 @@ func TestClient_Request(t *testing.T) {
 	}
 }
 
-func TestNewClient(t *testing.T) {
+func TestnewClient(t *testing.T) {
 	type args struct {
 		endpoint string
 		opt      *ClientOptions
@@ -77,14 +75,14 @@ func TestNewClient(t *testing.T) {
 		name string
 		args args
 		envs map[string]string
-		want *Client
+		want *client
 	}{
 		{
 			name: "default value ok",
 			args: args{
 				endpoint: "http://localhost",
 			},
-			want: &Client{
+			want: &client{
 				ApiEndpoint: "http://localhost",
 				opt: &ClientOptions{
 					UserAgent:      "libstns-go/0.0.1",
@@ -103,7 +101,7 @@ func TestNewClient(t *testing.T) {
 					RequestRetry:   6,
 				},
 			},
-			want: &Client{
+			want: &client{
 				ApiEndpoint: "http://localhost",
 				opt: &ClientOptions{
 					UserAgent:      "libstns-go/update",
@@ -117,7 +115,7 @@ func TestNewClient(t *testing.T) {
 			args: args{
 				endpoint: "http://localhost",
 			},
-			want: &Client{
+			want: &client{
 				ApiEndpoint: "http://localhost",
 				opt: &ClientOptions{
 					UserAgent:      "libstns-go/0.0.1",
@@ -140,10 +138,8 @@ func TestNewClient(t *testing.T) {
 					os.Setenv(k, v)
 				}
 			}
-			if got, _ := NewClient(tt.args.endpoint, tt.args.opt); !reflect.DeepEqual(got, tt.want) {
-				pp.Println(got)
-				pp.Println(tt.want)
-				t.Errorf("NewClient() = %v, want %v", got, tt.want)
+			if got, _ := newClient(tt.args.endpoint, tt.args.opt); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("newClient() = %v, want %v", got, tt.want)
 			}
 		})
 	}

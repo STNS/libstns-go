@@ -41,7 +41,7 @@ type ClientOptions struct {
 	HttpHeaders    map[string]string
 	TLS            TLS
 }
-type Client struct {
+type client struct {
 	ApiEndpoint string
 	opt         *ClientOptions
 }
@@ -52,7 +52,7 @@ type Response struct {
 	Body       []byte
 }
 
-func NewClient(endpoint string, opt *ClientOptions) (*Client, error) {
+func newClient(endpoint string, opt *ClientOptions) (*client, error) {
 	if opt == nil {
 		opt = &ClientOptions{}
 	}
@@ -72,12 +72,12 @@ func NewClient(endpoint string, opt *ClientOptions) (*Client, error) {
 		opt.RequestRetry = DefaultRetry
 	}
 
-	return &Client{
+	return &client{
 		ApiEndpoint: endpoint,
 		opt:         opt,
 	}, nil
 }
-func (h *Client) RequestURL(requestPath, query string) (*url.URL, error) {
+func (h *client) RequestURL(requestPath, query string) (*url.URL, error) {
 	u, err := url.Parse(h.ApiEndpoint)
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func (h *Client) RequestURL(requestPath, query string) (*url.URL, error) {
 
 }
 
-func (h *Client) Request(path, query string) (*Response, error) {
+func (h *client) Request(path, query string) (*Response, error) {
 	supportHeaders := []string{
 		"user-highest-id",
 		"user-lowest-id",
@@ -133,10 +133,10 @@ func (h *Client) Request(path, query string) (*Response, error) {
 			tr.Proxy = http.ProxyURL(proxyUrl)
 		}
 	}
-	retryClient := retryablehttp.NewClient()
-	retryClient.RetryMax = h.opt.RequestRetry
+	retryclient := retryablehttp.NewClient()
+	retryclient.RetryMax = h.opt.RequestRetry
 
-	client := retryClient.StandardClient()
+	client := retryclient.StandardClient()
 	client.Transport = tr
 	resp, err := client.Do(req)
 	if err != nil {
@@ -175,7 +175,7 @@ func (h *Client) Request(path, query string) (*Response, error) {
 	}
 }
 
-func (h *Client) setHeaders(req *http.Request) {
+func (h *client) setHeaders(req *http.Request) {
 	if len(h.opt.HttpHeaders) > 0 {
 		for k, v := range h.opt.HttpHeaders {
 			req.Header.Add(k, v)
@@ -189,13 +189,13 @@ func (h *Client) setHeaders(req *http.Request) {
 	}
 }
 
-func (h *Client) setBasicAuth(req *http.Request) {
+func (h *client) setBasicAuth(req *http.Request) {
 	if h.opt.User != "" && h.opt.Password != "" {
 		req.SetBasicAuth(h.opt.User, h.opt.Password)
 	}
 }
 
-func (h *Client) tlsConfig() (*tls.Config, error) {
+func (h *client) tlsConfig() (*tls.Config, error) {
 	tlsConfig := &tls.Config{InsecureSkipVerify: h.opt.SkipSSLVerify}
 	if h.opt.TLS.CA != "" {
 		CA_Pool := x509.NewCertPool()
