@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/STNS/libstns-go/libstns"
@@ -25,15 +24,10 @@ func main() {
 		panic(err)
 	}
 
-	jsonSig, err := json.Marshal(signature)
-	if err != nil {
-		panic(err)
-	}
-
 	// it is ok
-	fmt.Println(stns.VerifyWithUser("pyama", []byte("secret test"), jsonSig))
+	fmt.Println(stns.VerifyWithUser("pyama", []byte("secret test"), signature))
 
 	// verify error
-	fmt.Println(stns.VerifyWithUser("pyama", []byte("make error"), jsonSig))
+	fmt.Println(stns.VerifyWithUser("pyama", []byte("make error"), signature))
 
 }

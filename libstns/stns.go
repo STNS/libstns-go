@@ -113,12 +113,22 @@ func (s *STNS) GetGroupByID(id int) (*model.Group, error) {
 	return v[0], nil
 }
 
-func (c *STNS) Sign(msg []byte) (*ssh.Signature, error) {
+func (c *STNS) Sign(msg []byte) ([]byte, error) {
 	privateKey, err := c.loadPrivateKey()
 	if err != nil {
 		return nil, err
 	}
-	return privateKey.Sign(rand.Reader, msg)
+	sig, err := privateKey.Sign(rand.Reader, msg)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonSig, err := json.Marshal(sig)
+	if err != nil {
+		return nil, err
+	}
+	return jsonSig, nil
+
 }
 
 func (c *STNS) VerifyWithUser(name string, msg, signature []byte) error {
