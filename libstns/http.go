@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 	"time"
 
@@ -25,13 +24,15 @@ type TLS struct {
 	Key  string
 }
 
+var DefaultTimeout = 15
+var DefaultRetry = 3
+
 type HttpOptions struct {
-	ApiEndpoint    string
 	AuthToken      string
 	User           string
 	Password       string
 	UserAgent      string
-	SSLVerify      bool
+	SkipSSLVerify  bool
 	HttpProxy      string
 	RequestTimeout int
 	RequestRetry   int
@@ -39,7 +40,8 @@ type HttpOptions struct {
 	TLS            TLS
 }
 type Http struct {
-	opt *HttpOptions
+	ApiEndpoint string
+	opt         *HttpOptions
 }
 
 type Response struct {
@@ -48,14 +50,25 @@ type Response struct {
 	Body       []byte
 }
 
-func NewHttp(opt *HttpOptions) *Http {
+func NewHttp(endpoint string, opt *HttpOptions) *Http {
 	if opt.UserAgent == "" {
 		opt.UserAgent = "libstns-go"
 	}
+
+	if opt.RequestTimeout == 0 {
+		opt.RequestTimeout = DefaultTimeout
+	}
+
+	if opt.RequestRetry == 0 {
+		opt.RequestRetry = DefaultRetry
+	}
+
 	return &Http{
-		opt: opt,
+		ApiEndpoint: endpoint,
+		opt:         opt,
 	}
 }
+
 func (h *Http) Request(path string) (*Response, error) {
 	supportHeaders := []string{
 		"user-highest-id",
@@ -135,23 +148,15 @@ func (h *Http) Request(path string) (*Response, error) {
 	}
 }
 
-func (h *Http) RequestURL(requestPath, query string) (*url.URL, error) {
-	u, err := url.Parse(h.opt.ApiEndpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	u.Path = path.Join(u.Path, requestPath)
-	u.RawQuery = query
-	return u, nil
-
-}
-
 func (h *Http) setHeaders(req *http.Request) {
 	for k, v := range h.opt.HttpHeaders {
 		req.Header.Add(k, v)
 	}
 	req.Header.Set("User-Agent", fmt.Sprintf("%s/%s", h.opt.UserAgent, version))
+
+	if h.opt.AuthToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("token %s", h.opt.AuthToken))
+	}
 }
 
 func (h *Http) setBasicAuth(req *http.Request) {
@@ -161,7 +166,7 @@ func (h *Http) setBasicAuth(req *http.Request) {
 }
 
 func (h *Http) tlsConfig() (*tls.Config, error) {
-	tlsConfig := &tls.Config{InsecureSkipVerify: !h.opt.SSLVerify}
+	tlsConfig := &tls.Config{InsecureSkipVerify: h.opt.SkipSSLVerify}
 	if h.opt.TLS.CA != "" {
 		CA_Pool := x509.NewCertPool()
 
