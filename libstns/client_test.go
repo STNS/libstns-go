@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"testing"
 
 	"github.com/k0kubun/pp"
 )
 
-func TestHttp_Request(t *testing.T) {
+func TestClient_Request(t *testing.T) {
 	tests := []struct {
 		name         string
-		opt          *HttpOptions
+		opt          *ClientOptions
 		path         string
 		query        string
 		responseCode int
@@ -23,7 +24,7 @@ func TestHttp_Request(t *testing.T) {
 	}{
 		{
 			name:         "ok",
-			opt:          &HttpOptions{},
+			opt:          &ClientOptions{},
 			path:         "test",
 			responseCode: http.StatusOK,
 			responseBody: "it is ok",
@@ -36,16 +37,12 @@ func TestHttp_Request(t *testing.T) {
 		},
 		{
 			name:         "notfound",
-			opt:          &HttpOptions{},
+			opt:          &ClientOptions{},
 			path:         "test",
 			responseCode: http.StatusNotFound,
-			responseBody: "",
-			want: &Response{
-				StatusCode: http.StatusNotFound,
-				Body:       nil,
-				Headers:    map[string]string{},
-			},
-			wantErr: false,
+			responseBody: "notfound",
+			want:         nil,
+			wantErr:      true,
 		},
 	}
 	for _, tt := range tests {
@@ -55,40 +52,41 @@ func TestHttp_Request(t *testing.T) {
 				fmt.Fprintf(w, tt.responseBody)
 			}))
 			defer ts.Close()
-			h := &Http{
+			h := &Client{
 				ApiEndpoint: ts.URL,
 				opt:         tt.opt,
 			}
 			got, err := h.Request(tt.path, tt.query)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Http.Request() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Client.Request() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Http.Request() = %v, want %v", got, tt.want)
+				t.Errorf("Client.Request() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestNewHttp(t *testing.T) {
+func TestNewClient(t *testing.T) {
 	type args struct {
 		endpoint string
-		opt      *HttpOptions
+		opt      *ClientOptions
 	}
 	tests := []struct {
 		name string
 		args args
-		want *Http
+		envs map[string]string
+		want *Client
 	}{
 		{
 			name: "default value ok",
 			args: args{
 				endpoint: "http://localhost",
 			},
-			want: &Http{
+			want: &Client{
 				ApiEndpoint: "http://localhost",
-				opt: &HttpOptions{
+				opt: &ClientOptions{
 					UserAgent:      "libstns-go/0.0.1",
 					RequestTimeout: 15,
 					RequestRetry:   3,
@@ -99,27 +97,53 @@ func TestNewHttp(t *testing.T) {
 			name: "set value ok",
 			args: args{
 				endpoint: "http://localhost",
-				opt: &HttpOptions{
+				opt: &ClientOptions{
 					UserAgent:      "libstns-go/update",
 					RequestTimeout: 30,
 					RequestRetry:   6,
 				},
 			},
-			want: &Http{
+			want: &Client{
 				ApiEndpoint: "http://localhost",
-				opt: &HttpOptions{
+				opt: &ClientOptions{
 					UserAgent:      "libstns-go/update",
 					RequestTimeout: 30,
 					RequestRetry:   6,
 				},
 			},
 		},
+		{
+			name: "set envs ok",
+			args: args{
+				endpoint: "http://localhost",
+			},
+			want: &Client{
+				ApiEndpoint: "http://localhost",
+				opt: &ClientOptions{
+					UserAgent:      "libstns-go/0.0.1",
+					RequestTimeout: 15,
+					RequestRetry:   3,
+					User:           "example user",
+					Password:       "example password",
+				},
+			},
+			envs: map[string]string{
+				"STNS_USER":     "example user",
+				"STNS_PASSWORD": "example password",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewHttp(tt.args.endpoint, tt.args.opt); !reflect.DeepEqual(got, tt.want) {
+			if len(tt.envs) > 0 {
+				for k, v := range tt.envs {
+					os.Setenv(k, v)
+				}
+			}
+			if got, _ := NewClient(tt.args.endpoint, tt.args.opt); !reflect.DeepEqual(got, tt.want) {
 				pp.Println(got)
-				t.Errorf("NewHttp() = %v, want %v", got, tt.want)
+				pp.Println(tt.want)
+				t.Errorf("NewClient() = %v, want %v", got, tt.want)
 			}
 		})
 	}

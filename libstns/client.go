@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/caarlos0/env"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -28,21 +29,21 @@ type TLS struct {
 var DefaultTimeout = 15
 var DefaultRetry = 3
 
-type HttpOptions struct {
-	AuthToken      string
-	User           string
-	Password       string
+type ClientOptions struct {
+	AuthToken      string `env:"STNS_AUTH_TOKEN"`
+	User           string `env:"STNS_USER"`
+	Password       string `env:"STNS_PASSWORD"`
 	UserAgent      string
-	SkipSSLVerify  bool
+	SkipSSLVerify  bool `env:"STNS_SKIP_VERIFY"`
 	HttpProxy      string
-	RequestTimeout int
-	RequestRetry   int
+	RequestTimeout int `env:"STNS_REQUEST_TIMEOUT"`
+	RequestRetry   int `env:"STNS_REQUEST_RETRY"`
 	HttpHeaders    map[string]string
 	TLS            TLS
 }
-type Http struct {
+type Client struct {
 	ApiEndpoint string
-	opt         *HttpOptions
+	opt         *ClientOptions
 }
 
 type Response struct {
@@ -51,11 +52,14 @@ type Response struct {
 	Body       []byte
 }
 
-func NewHttp(endpoint string, opt *HttpOptions) *Http {
+func NewClient(endpoint string, opt *ClientOptions) (*Client, error) {
 	if opt == nil {
-		opt = &HttpOptions{}
+		opt = &ClientOptions{}
 	}
 
+	if err := env.Parse(opt); err != nil {
+		return nil, err
+	}
 	if opt.UserAgent == "" {
 		opt.UserAgent = fmt.Sprintf("%s/%s", "libstns-go", version)
 	}
@@ -68,12 +72,12 @@ func NewHttp(endpoint string, opt *HttpOptions) *Http {
 		opt.RequestRetry = DefaultRetry
 	}
 
-	return &Http{
+	return &Client{
 		ApiEndpoint: endpoint,
 		opt:         opt,
-	}
+	}, nil
 }
-func (h *Http) RequestURL(requestPath, query string) (*url.URL, error) {
+func (h *Client) RequestURL(requestPath, query string) (*url.URL, error) {
 	u, err := url.Parse(h.ApiEndpoint)
 	if err != nil {
 		return nil, err
@@ -85,7 +89,7 @@ func (h *Http) RequestURL(requestPath, query string) (*url.URL, error) {
 
 }
 
-func (h *Http) Request(path, query string) (*Response, error) {
+func (h *Client) Request(path, query string) (*Response, error) {
 	supportHeaders := []string{
 		"user-highest-id",
 		"user-lowest-id",
@@ -163,18 +167,21 @@ func (h *Http) Request(path, query string) (*Response, error) {
 
 		return &r, nil
 	default:
-		r := Response{
-			StatusCode: resp.StatusCode,
-			Headers:    headers,
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
 		}
-		return &r, nil
+		return nil, fmt.Errorf("status code=%d, body=%s", resp.StatusCode, string(body))
 	}
 }
 
-func (h *Http) setHeaders(req *http.Request) {
-	for k, v := range h.opt.HttpHeaders {
-		req.Header.Add(k, v)
+func (h *Client) setHeaders(req *http.Request) {
+	if len(h.opt.HttpHeaders) > 0 {
+		for k, v := range h.opt.HttpHeaders {
+			req.Header.Add(k, v)
+		}
 	}
+
 	req.Header.Set("User-Agent", h.opt.UserAgent)
 
 	if h.opt.AuthToken != "" {
@@ -182,13 +189,13 @@ func (h *Http) setHeaders(req *http.Request) {
 	}
 }
 
-func (h *Http) setBasicAuth(req *http.Request) {
+func (h *Client) setBasicAuth(req *http.Request) {
 	if h.opt.User != "" && h.opt.Password != "" {
 		req.SetBasicAuth(h.opt.User, h.opt.Password)
 	}
 }
 
-func (h *Http) tlsConfig() (*tls.Config, error) {
+func (h *Client) tlsConfig() (*tls.Config, error) {
 	tlsConfig := &tls.Config{InsecureSkipVerify: h.opt.SkipSSLVerify}
 	if h.opt.TLS.CA != "" {
 		CA_Pool := x509.NewCertPool()
