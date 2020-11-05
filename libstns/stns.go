@@ -14,12 +14,30 @@ import (
 )
 
 type STNS struct {
-	client             *client
+	client *client
+	opt    *Options
+}
+
+type Options struct {
+	AuthToken          string `env:"STNS_AUTH_TOKEN"`
+	User               string `env:"STNS_USER"`
+	Password           string `env:"STNS_PASSWORD"`
+	UserAgent          string
+	SkipSSLVerify      bool `env:"STNS_SKIP_VERIFY"`
+	HttpProxy          string
+	RequestTimeout     int `env:"STNS_REQUEST_TIMEOUT"`
+	RequestRetry       int `env:"STNS_REQUEST_RETRY"`
+	HttpHeaders        map[string]string
+	TLS                TLS
 	PrivatekeyPath     string `env:"STNS_PRIVATE_KEY" envDefault:"~/.ssh/id_rsa"`
 	PrivatekeyPassword string `env:"STNS_PRIVATE_KEY_PASSWORD"`
 }
 
-func NewSTNS(endpoint string, opt *ClientOptions) (*STNS, error) {
+func NewSTNS(endpoint string, opt *Options) (*STNS, error) {
+	if opt == nil {
+		opt = &Options{}
+	}
+
 	s := &STNS{}
 	if err := env.Parse(s); err != nil {
 		return nil, err
@@ -29,6 +47,7 @@ func NewSTNS(endpoint string, opt *ClientOptions) (*STNS, error) {
 		return nil, err
 	}
 	s.client = c
+	s.opt = opt
 	return s, nil
 }
 
@@ -154,13 +173,13 @@ func (c *STNS) Verify(msg, publicKeyBytes, signature []byte) error {
 
 func (c *STNS) loadPrivateKey() (ssh.Signer, error) {
 	usr, _ := user.Current()
-	priv, err := ioutil.ReadFile(strings.Replace(c.PrivatekeyPath, "~", usr.HomeDir, 1))
+	priv, err := ioutil.ReadFile(strings.Replace(c.opt.PrivatekeyPath, "~", usr.HomeDir, 1))
 	if err != nil {
-		return nil, fmt.Errorf("error:%s path:%s", err.Error(), c.PrivatekeyPath)
+		return nil, fmt.Errorf("error:%s path:%s", err.Error(), c.opt.PrivatekeyPath)
 	}
 
-	if c.PrivatekeyPassword != "" {
-		return ssh.ParsePrivateKeyWithPassphrase(priv, []byte(c.PrivatekeyPassword))
+	if c.opt.PrivatekeyPassword != "" {
+		return ssh.ParsePrivateKeyWithPassphrase(priv, []byte(c.opt.PrivatekeyPassword))
 	}
 	return ssh.ParsePrivateKey(priv)
 

@@ -12,7 +12,7 @@ import (
 func TestClient_Request(t *testing.T) {
 	tests := []struct {
 		name         string
-		opt          *ClientOptions
+		opt          *Options
 		path         string
 		query        string
 		responseCode int
@@ -22,7 +22,7 @@ func TestClient_Request(t *testing.T) {
 	}{
 		{
 			name:         "ok",
-			opt:          &ClientOptions{},
+			opt:          &Options{},
 			path:         "test",
 			responseCode: http.StatusOK,
 			responseBody: "it is ok",
@@ -35,7 +35,7 @@ func TestClient_Request(t *testing.T) {
 		},
 		{
 			name:         "notfound",
-			opt:          &ClientOptions{},
+			opt:          &Options{},
 			path:         "test",
 			responseCode: http.StatusNotFound,
 			responseBody: "notfound",
@@ -69,7 +69,7 @@ func TestClient_Request(t *testing.T) {
 func TestnewClient(t *testing.T) {
 	type args struct {
 		endpoint string
-		opt      *ClientOptions
+		opt      *Options
 	}
 	tests := []struct {
 		name string
@@ -84,7 +84,7 @@ func TestnewClient(t *testing.T) {
 			},
 			want: &client{
 				ApiEndpoint: "http://localhost",
-				opt: &ClientOptions{
+				opt: &Options{
 					UserAgent:      "libstns-go/0.0.1",
 					RequestTimeout: 15,
 					RequestRetry:   3,
@@ -95,7 +95,7 @@ func TestnewClient(t *testing.T) {
 			name: "set value ok",
 			args: args{
 				endpoint: "http://localhost",
-				opt: &ClientOptions{
+				opt: &Options{
 					UserAgent:      "libstns-go/update",
 					RequestTimeout: 30,
 					RequestRetry:   6,
@@ -103,7 +103,7 @@ func TestnewClient(t *testing.T) {
 			},
 			want: &client{
 				ApiEndpoint: "http://localhost",
-				opt: &ClientOptions{
+				opt: &Options{
 					UserAgent:      "libstns-go/update",
 					RequestTimeout: 30,
 					RequestRetry:   6,
@@ -117,7 +117,7 @@ func TestnewClient(t *testing.T) {
 			},
 			want: &client{
 				ApiEndpoint: "http://localhost",
-				opt: &ClientOptions{
+				opt: &Options{
 					UserAgent:      "libstns-go/0.0.1",
 					RequestTimeout: 15,
 					RequestRetry:   3,

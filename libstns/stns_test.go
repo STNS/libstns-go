@@ -79,7 +79,7 @@ func TestSTNS_ListUser(t *testing.T) {
 			s := &STNS{
 				client: &client{
 					ApiEndpoint: ts.URL,
-					opt:         &ClientOptions{},
+					opt:         &Options{},
 				},
 			}
 			got, err := s.ListUser()
@@ -153,7 +153,7 @@ func TestSTNS_GetUserByName(t *testing.T) {
 			s := &STNS{
 				client: &client{
 					ApiEndpoint: ts.URL,
-					opt:         &ClientOptions{},
+					opt:         &Options{},
 				},
 			}
 
@@ -228,7 +228,7 @@ func TestSTNS_GetUserByID(t *testing.T) {
 			s := &STNS{
 				client: &client{
 					ApiEndpoint: ts.URL,
-					opt:         &ClientOptions{},
+					opt:         &Options{},
 				},
 			}
 
@@ -312,7 +312,7 @@ func TestSTNS_ListGroup(t *testing.T) {
 			s := &STNS{
 				client: &client{
 					ApiEndpoint: ts.URL,
-					opt:         &ClientOptions{},
+					opt:         &Options{},
 				},
 			}
 			got, err := s.ListGroup()
@@ -386,7 +386,7 @@ func TestSTNS_GetGroupByName(t *testing.T) {
 			s := &STNS{
 				client: &client{
 					ApiEndpoint: ts.URL,
-					opt:         &ClientOptions{},
+					opt:         &Options{},
 				},
 			}
 
@@ -461,7 +461,7 @@ func TestSTNS_GetGroupByID(t *testing.T) {
 			s := &STNS{
 				client: &client{
 					ApiEndpoint: ts.URL,
-					opt:         &ClientOptions{},
+					opt:         &Options{},
 				},
 			}
 
@@ -502,9 +502,11 @@ func TestSTNS_Signature(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &STNS{
-				client:             tt.fields.client,
-				PrivatekeyPath:     tt.fields.PrivatekeyPath,
-				PrivatekeyPassword: tt.fields.PrivatekeyPassword,
+				client: tt.fields.client,
+				opt: &Options{
+					PrivatekeyPath:     tt.fields.PrivatekeyPath,
+					PrivatekeyPassword: tt.fields.PrivatekeyPassword,
+				},
 			}
 			_, err := c.Sign(tt.msg)
 			if (err != nil) != tt.wantErr {
@@ -546,9 +548,11 @@ func TestSTNS_loadPrivateKey(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &STNS{
-				client:             tt.fields.client,
-				PrivatekeyPath:     tt.fields.PrivatekeyPath,
-				PrivatekeyPassword: tt.fields.PrivatekeyPassword,
+				client: tt.fields.client,
+				opt: &Options{
+					PrivatekeyPath:     tt.fields.PrivatekeyPath,
+					PrivatekeyPassword: tt.fields.PrivatekeyPassword,
+				},
 			}
 			_, err := c.loadPrivateKey()
 			if (err != nil) != tt.wantErr {
@@ -636,9 +640,11 @@ func TestSTNS_Verify(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &STNS{
-				client:             tt.fields.client,
-				PrivatekeyPath:     tt.fields.PrivatekeyPath,
-				PrivatekeyPassword: tt.fields.PrivatekeyPassword,
+				client: tt.fields.client,
+				opt: &Options{
+					PrivatekeyPath:     tt.fields.PrivatekeyPath,
+					PrivatekeyPassword: tt.fields.PrivatekeyPassword,
+				},
 			}
 			if err := c.Verify(tt.args.msg, tt.args.publicKeyBytes, tt.args.signature); (err != nil) != tt.wantErr {
 				t.Errorf("STNS.Verify() error = %v, wantErr %v", err, tt.wantErr)

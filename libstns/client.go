@@ -29,21 +29,9 @@ type TLS struct {
 var DefaultTimeout = 15
 var DefaultRetry = 3
 
-type ClientOptions struct {
-	AuthToken      string `env:"STNS_AUTH_TOKEN"`
-	User           string `env:"STNS_USER"`
-	Password       string `env:"STNS_PASSWORD"`
-	UserAgent      string
-	SkipSSLVerify  bool `env:"STNS_SKIP_VERIFY"`
-	HttpProxy      string
-	RequestTimeout int `env:"STNS_REQUEST_TIMEOUT"`
-	RequestRetry   int `env:"STNS_REQUEST_RETRY"`
-	HttpHeaders    map[string]string
-	TLS            TLS
-}
 type client struct {
 	ApiEndpoint string
-	opt         *ClientOptions
+	opt         *Options
 }
 
 type Response struct {
@@ -52,10 +40,7 @@ type Response struct {
 	Body       []byte
 }
 
-func newClient(endpoint string, opt *ClientOptions) (*client, error) {
-	if opt == nil {
-		opt = &ClientOptions{}
-	}
+func newClient(endpoint string, opt *Options) (*client, error) {
 
 	if err := env.Parse(opt); err != nil {
 		return nil, err
