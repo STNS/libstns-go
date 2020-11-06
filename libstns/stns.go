@@ -3,6 +3,7 @@ package libstns
 import (
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os/user"
@@ -159,16 +160,24 @@ func (c *STNS) VerifyWithUser(name string, msg, signature []byte) error {
 }
 
 func (c *STNS) Verify(msg, publicKeyBytes, signature []byte) error {
-	publicKey, _, _, _, err := ssh.ParseAuthorizedKey(publicKeyBytes)
-	if err != nil {
-		return fmt.Errorf("can't read public key %s", err.Error())
-	}
+	for len(publicKeyBytes) > 0 {
+		publicKey, _, _, rest, err := ssh.ParseAuthorizedKey(publicKeyBytes)
+		if err != nil {
+			return fmt.Errorf("can't read public key %s", err.Error())
+		}
 
-	var sig ssh.Signature
-	if err := json.Unmarshal(signature, &sig); err != nil {
-		return err
+		var sig ssh.Signature
+		if err := json.Unmarshal(signature, &sig); err != nil {
+			return err
+		}
+
+		if err := publicKey.Verify(msg, &sig); err == nil {
+			return nil
+		}
+		publicKeyBytes = rest
 	}
-	return publicKey.Verify(msg, &sig)
+	return errors.New("verify failed")
+
 }
 
 func (c *STNS) loadPrivateKey() (ssh.Signer, error) {
