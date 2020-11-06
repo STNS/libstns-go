@@ -21,7 +21,7 @@ type STNS struct {
 	opt                *Options
 	makeChallengeCode  func() ([]byte, error)
 	storeChallengeCode func(string, []byte) error
-	getChallengeCode   func(string) ([]byte, error)
+	popChallengeCode   func(string) ([]byte, error)
 }
 
 func DefaultStoreChallengeCode(user string, code []byte) error {
@@ -33,8 +33,10 @@ func DefaultStoreChallengeCode(user string, code []byte) error {
 	return nil
 }
 
-func DefaultGetChallengeCode(user string) ([]byte, error) {
-	return ioutil.ReadFile(path.Join(os.TempDir(), user))
+func DefaultPopChallengeCode(user string) ([]byte, error) {
+	p := path.Join(os.TempDir(), user)
+	defer os.Remove(p)
+	return ioutil.ReadFile(p)
 }
 
 func DefaultMakeChallengeCode() ([]byte, error) {
@@ -73,7 +75,7 @@ func NewSTNS(endpoint string, opt *Options) (*STNS, error) {
 	}
 
 	s := &STNS{
-		getChallengeCode:   DefaultGetChallengeCode,
+		popChallengeCode:   DefaultPopChallengeCode,
 		storeChallengeCode: DefaultStoreChallengeCode,
 		makeChallengeCode:  DefaultMakeChallengeCode,
 	}
@@ -96,8 +98,8 @@ func (s *STNS) SetStoreChallengeCode(f func(string, []byte) error) {
 	s.storeChallengeCode = f
 }
 
-func (s *STNS) SetGetChallengeCode(f func(string) ([]byte, error)) {
-	s.getChallengeCode = f
+func (s *STNS) SetPopChallengeCode(f func(string) ([]byte, error)) {
+	s.popChallengeCode = f
 }
 
 func (s *STNS) ListUser() ([]*model.User, error) {
@@ -189,8 +191,8 @@ func (c *STNS) CreateUserChallengeCode(name string) ([]byte, error) {
 	return code, nil
 }
 
-func (c *STNS) GetUserChallengeCode(name string) ([]byte, error) {
-	return c.getChallengeCode(name)
+func (c *STNS) PopUserChallengeCode(name string) ([]byte, error) {
+	return c.popChallengeCode(name)
 }
 
 func (c *STNS) Sign(code []byte) ([]byte, error) {
