@@ -2,6 +2,7 @@ package libstns
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -507,8 +508,17 @@ func TestSTNS_Signature(t *testing.T) {
 					PrivatekeyPath:     tt.fields.PrivatekeyPath,
 					PrivatekeyPassword: tt.fields.PrivatekeyPassword,
 				},
+				makeChallengeCode: func() ([]byte, error) {
+					return []byte("dummy"), nil
+				},
+				storeChallengeCode: func(name string, code []byte) error {
+					if name == tt.name && reflect.DeepEqual(code, []byte("dummy")) {
+						return nil
+					}
+					return errors.New("unmatch store code")
+				},
 			}
-			_, err := c.Sign(tt.msg)
+			_, err := c.Signature(tt.msg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("STNS.Signature() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -646,7 +656,7 @@ func TestSTNS_Verify(t *testing.T) {
 					PrivatekeyPassword: tt.fields.PrivatekeyPassword,
 				},
 			}
-			if err := c.Verify(tt.args.msg, tt.args.publicKeyBytes, tt.args.signature); (err != nil) != tt.wantErr {
+			if err := c.verify(tt.args.msg, tt.args.publicKeyBytes, tt.args.signature); (err != nil) != tt.wantErr {
 				t.Errorf("STNS.Verify() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
