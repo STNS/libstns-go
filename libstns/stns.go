@@ -25,6 +25,7 @@ type STNS struct {
 }
 
 func DefaultStoreChallengeCode(user string, code []byte) error {
+	fmt.Sprint(path.Join(os.TempDir(), user))
 	err := ioutil.WriteFile(path.Join(os.TempDir(), user), code, 0600)
 	if err != nil {
 		return err
@@ -188,7 +189,11 @@ func (c *STNS) CreateUserChallengeCode(name string) ([]byte, error) {
 	return code, nil
 }
 
-func (c *STNS) Signature(code []byte) ([]byte, error) {
+func (c *STNS) GetUserChallengeCode(name string) ([]byte, error) {
+	return c.getChallengeCode(name)
+}
+
+func (c *STNS) Sign(code []byte) ([]byte, error) {
 	privateKey, err := c.loadPrivateKey()
 	if err != nil {
 		return nil, err
@@ -206,20 +211,16 @@ func (c *STNS) Signature(code []byte) ([]byte, error) {
 	return jsonSig, nil
 }
 
-func (c *STNS) VerifyWithUser(name string, signature []byte) error {
+func (c *STNS) VerifyWithUser(name string, msg, signature []byte) error {
 	user, err := c.GetUserByName(name)
 	if err != nil {
 		return err
 	}
-	msg, err := c.getChallengeCode(name)
-	if err != nil {
-		return err
-	}
 
-	return c.verify(msg, []byte(strings.Join(user.Keys, "\n")), signature)
+	return c.Verify(msg, []byte(strings.Join(user.Keys, "\n")), signature)
 }
 
-func (c *STNS) verify(msg, publicKeyBytes, signature []byte) error {
+func (c *STNS) Verify(msg, publicKeyBytes, signature []byte) error {
 	for len(publicKeyBytes) > 0 {
 		publicKey, _, _, rest, err := ssh.ParseAuthorizedKey(publicKeyBytes)
 		if err != nil {

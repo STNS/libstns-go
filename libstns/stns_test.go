@@ -478,7 +478,7 @@ func TestSTNS_GetGroupByID(t *testing.T) {
 	}
 }
 
-func TestSTNS_Signature(t *testing.T) {
+func TestSTNS_Sign(t *testing.T) {
 	type fields struct {
 		client             *client
 		PrivatekeyPath     string
@@ -518,9 +518,9 @@ func TestSTNS_Signature(t *testing.T) {
 					return errors.New("unmatch store code")
 				},
 			}
-			_, err := c.Signature(tt.msg)
+			_, err := c.Sign(tt.msg)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("STNS.Signature() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("STNS.Sign() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 		})
@@ -656,7 +656,7 @@ func TestSTNS_Verify(t *testing.T) {
 					PrivatekeyPassword: tt.fields.PrivatekeyPassword,
 				},
 			}
-			if err := c.verify(tt.args.msg, tt.args.publicKeyBytes, tt.args.signature); (err != nil) != tt.wantErr {
+			if err := c.Verify(tt.args.msg, tt.args.publicKeyBytes, tt.args.signature); (err != nil) != tt.wantErr {
 				t.Errorf("STNS.Verify() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
