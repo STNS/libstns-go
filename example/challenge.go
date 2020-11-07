@@ -29,15 +29,17 @@ func verify(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		panic(err)
 	}
+
 	err := stns.VerifyWithUser(r.FormValue("user"), []byte(r.FormValue("code")), []byte(r.FormValue("signature")))
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	code, err := stns.GetUserChallengeCode(r.FormValue("user"))
+	code, err := stns.PopUserChallengeCode(r.FormValue("user"))
 	if err != nil {
 		panic(err)
 	}
+
 	if string(code) == r.FormValue("code") {
 		w.WriteHeader(http.StatusOK)
 		return
