@@ -3,7 +3,7 @@ REVISION := $(shell git rev-parse --short HEAD)
 INFO_COLOR=\033[1;34m
 RESET=\033[0m
 BOLD=\033[1m
-TEST ?= $(shell go list ./... | grep -v -e vendor -e keys -e tmp)
+TEST ?= $(shell go list ./... | grep -v -e vendor -e keys -e tmp -e example)
 
 GOVERSION=$(shell go version)
 GO ?= GO111MODULE=on go

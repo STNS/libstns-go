@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"os/user"
+	"path"
 	"strings"
 
 	"github.com/STNS/STNS/v2/model"
@@ -15,8 +17,41 @@ import (
 )
 
 type STNS struct {
-	client *client
-	opt    *Options
+	client             *client
+	opt                *Options
+	makeChallengeCode  func() ([]byte, error)
+	storeChallengeCode func(string, []byte) error
+	popChallengeCode   func(string) ([]byte, error)
+}
+
+func DefaultStoreChallengeCode(user string, code []byte) error {
+	fmt.Sprint(path.Join(os.TempDir(), user))
+	err := ioutil.WriteFile(path.Join(os.TempDir(), user), code, 0600)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func DefaultPopChallengeCode(user string) ([]byte, error) {
+	p := path.Join(os.TempDir(), user)
+	defer os.Remove(p)
+	return ioutil.ReadFile(p)
+}
+
+func DefaultMakeChallengeCode() ([]byte, error) {
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return nil, errors.New("rand read error")
+	}
+
+	var bs []byte
+	for _, v := range b {
+		bs = append(bs, letters[int(v)%len(letters)])
+	}
+	return bs, nil
+
 }
 
 type Options struct {
@@ -39,7 +74,11 @@ func NewSTNS(endpoint string, opt *Options) (*STNS, error) {
 		opt = &Options{}
 	}
 
-	s := &STNS{}
+	s := &STNS{
+		popChallengeCode:   DefaultPopChallengeCode,
+		storeChallengeCode: DefaultStoreChallengeCode,
+		makeChallengeCode:  DefaultMakeChallengeCode,
+	}
 	if err := env.Parse(s); err != nil {
 		return nil, err
 	}
@@ -54,6 +93,14 @@ func NewSTNS(endpoint string, opt *Options) (*STNS, error) {
 
 const usersEndpoint = "/users"
 const groupsEndpoint = "/groups"
+
+func (s *STNS) SetStoreChallengeCode(f func(string, []byte) error) {
+	s.storeChallengeCode = f
+}
+
+func (s *STNS) SetPopChallengeCode(f func(string) ([]byte, error)) {
+	s.popChallengeCode = f
+}
 
 func (s *STNS) ListUser() ([]*model.User, error) {
 	r, err := s.client.Request(usersEndpoint, "")
@@ -132,13 +179,28 @@ func (s *STNS) GetGroupByID(id int) (*model.Group, error) {
 
 	return v[0], nil
 }
+func (c *STNS) CreateUserChallengeCode(name string) ([]byte, error) {
+	code, err := c.makeChallengeCode()
+	if err != nil {
+		return nil, err
+	}
+	err = c.storeChallengeCode(name, code)
+	if err != nil {
+		return nil, err
+	}
+	return code, nil
+}
 
-func (c *STNS) Sign(msg []byte) ([]byte, error) {
+func (c *STNS) PopUserChallengeCode(name string) ([]byte, error) {
+	return c.popChallengeCode(name)
+}
+
+func (c *STNS) Sign(code []byte) ([]byte, error) {
 	privateKey, err := c.loadPrivateKey()
 	if err != nil {
 		return nil, err
 	}
-	sig, err := privateKey.Sign(rand.Reader, msg)
+	sig, err := privateKey.Sign(rand.Reader, code)
 	if err != nil {
 		return nil, err
 	}
@@ -147,8 +209,8 @@ func (c *STNS) Sign(msg []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return jsonSig, nil
 
+	return jsonSig, nil
 }
 
 func (c *STNS) VerifyWithUser(name string, msg, signature []byte) error {
@@ -156,6 +218,7 @@ func (c *STNS) VerifyWithUser(name string, msg, signature []byte) error {
 	if err != nil {
 		return err
 	}
+
 	return c.Verify(msg, []byte(strings.Join(user.Keys, "\n")), signature)
 }
 

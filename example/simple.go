@@ -19,15 +19,14 @@ func main() {
 	}
 	pp.Println(user)
 
-	signature, err := stns.Sign([]byte("secret test"))
+	signature, err := stns.Sign([]byte("secret message"))
 	if err != nil {
 		panic(err)
 	}
 
 	// it is ok
-	fmt.Println(stns.VerifyWithUser("pyama", []byte("secret test"), signature))
+	fmt.Println(stns.VerifyWithUser("pyama", []byte("secret message"), signature))
 
 	// verify error
-	fmt.Println(stns.VerifyWithUser("pyama", []byte("make error"), signature))
-
+	fmt.Println(stns.VerifyWithUser("pyama", []byte("invalid message"), signature))
 }

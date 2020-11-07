@@ -2,6 +2,7 @@ package libstns
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -477,7 +478,7 @@ func TestSTNS_GetGroupByID(t *testing.T) {
 	}
 }
 
-func TestSTNS_Signature(t *testing.T) {
+func TestSTNS_Sign(t *testing.T) {
 	type fields struct {
 		client             *client
 		PrivatekeyPath     string
@@ -507,10 +508,19 @@ func TestSTNS_Signature(t *testing.T) {
 					PrivatekeyPath:     tt.fields.PrivatekeyPath,
 					PrivatekeyPassword: tt.fields.PrivatekeyPassword,
 				},
+				makeChallengeCode: func() ([]byte, error) {
+					return []byte("dummy"), nil
+				},
+				storeChallengeCode: func(name string, code []byte) error {
+					if name == tt.name && reflect.DeepEqual(code, []byte("dummy")) {
+						return nil
+					}
+					return errors.New("unmatch store code")
+				},
 			}
 			_, err := c.Sign(tt.msg)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("STNS.Signature() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("STNS.Sign() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 		})
