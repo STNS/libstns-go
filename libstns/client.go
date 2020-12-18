@@ -152,11 +152,15 @@ func (h *client) Request(path, query string) (*Response, error) {
 
 		return &r, nil
 	default:
-		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return nil, err
 		}
-		return nil, fmt.Errorf("status code=%d, body=%s", resp.StatusCode, string(body))
+		r := Response{
+			StatusCode: resp.StatusCode,
+			Headers:    headers,
+		}
+
+		return &r, fmt.Errorf("status code=%d, body=%s", resp.StatusCode, string(body))
 	}
 }
 
