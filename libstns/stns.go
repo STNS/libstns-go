@@ -102,6 +102,10 @@ func (s *STNS) SetPopChallengeCode(f func(string) ([]byte, error)) {
 	s.popChallengeCode = f
 }
 
+func (s *STNS) Request(path, query string) (*Response, error) {
+	return s.client.Request(path, query)
+}
+
 func (s *STNS) ListUser() ([]*model.User, error) {
 	r, err := s.client.Request(usersEndpoint, "")
 	if err != nil {
