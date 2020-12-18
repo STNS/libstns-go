@@ -39,8 +39,12 @@ func TestClient_Request(t *testing.T) {
 			path:         "test",
 			responseCode: http.StatusNotFound,
 			responseBody: "notfound",
-			want:         nil,
-			wantErr:      true,
+			want: &Response{
+				StatusCode: http.StatusNotFound,
+				Body:       []byte("notfound"),
+				Headers:    map[string]string{},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
