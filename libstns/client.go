@@ -129,6 +129,7 @@ func (h *client) Request(path, query string) (*Response, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+	defer tr.CloseIdleConnections()
 
 	headers := map[string]string{}
 	for k, v := range resp.Header {
