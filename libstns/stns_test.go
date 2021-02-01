@@ -77,12 +77,17 @@ func TestSTNS_ListUser(t *testing.T) {
 			}))
 			defer ts.Close()
 
-			s := &STNS{
-				client: &client{
-					ApiEndpoint: ts.URL,
-					opt:         &Options{},
-				},
+			h, err := newClient(
+				ts.URL,
+				&Options{},
+			)
+			if err != nil {
+				t.Error(err)
 			}
+			s := &STNS{
+				client: h,
+			}
+
 			got, err := s.ListUser()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("STNS.ListUser() error = %v, wantErr %v", err, tt.wantErr)
@@ -151,11 +156,15 @@ func TestSTNS_GetUserByName(t *testing.T) {
 			}))
 			defer ts.Close()
 
+			h, err := newClient(
+				ts.URL,
+				&Options{},
+			)
+			if err != nil {
+				t.Error(err)
+			}
 			s := &STNS{
-				client: &client{
-					ApiEndpoint: ts.URL,
-					opt:         &Options{},
-				},
+				client: h,
 			}
 
 			got, err := s.GetUserByName(tt.args.name)
@@ -226,11 +235,15 @@ func TestSTNS_GetUserByID(t *testing.T) {
 			}))
 			defer ts.Close()
 
+			h, err := newClient(
+				ts.URL,
+				&Options{},
+			)
+			if err != nil {
+				t.Error(err)
+			}
 			s := &STNS{
-				client: &client{
-					ApiEndpoint: ts.URL,
-					opt:         &Options{},
-				},
+				client: h,
 			}
 
 			got, err := s.GetUserByID(tt.args.id)
@@ -310,11 +323,15 @@ func TestSTNS_ListGroup(t *testing.T) {
 			}))
 			defer ts.Close()
 
+			h, err := newClient(
+				ts.URL,
+				&Options{},
+			)
+			if err != nil {
+				t.Error(err)
+			}
 			s := &STNS{
-				client: &client{
-					ApiEndpoint: ts.URL,
-					opt:         &Options{},
-				},
+				client: h,
 			}
 			got, err := s.ListGroup()
 			if (err != nil) != tt.wantErr {
@@ -384,11 +401,15 @@ func TestSTNS_GetGroupByName(t *testing.T) {
 			}))
 			defer ts.Close()
 
+			h, err := newClient(
+				ts.URL,
+				&Options{},
+			)
+			if err != nil {
+				t.Error(err)
+			}
 			s := &STNS{
-				client: &client{
-					ApiEndpoint: ts.URL,
-					opt:         &Options{},
-				},
+				client: h,
 			}
 
 			got, err := s.GetGroupByName(tt.args.name)
@@ -459,11 +480,15 @@ func TestSTNS_GetGroupByID(t *testing.T) {
 			}))
 			defer ts.Close()
 
+			h, err := newClient(
+				ts.URL,
+				&Options{},
+			)
+			if err != nil {
+				t.Error(err)
+			}
 			s := &STNS{
-				client: &client{
-					ApiEndpoint: ts.URL,
-					opt:         &Options{},
-				},
+				client: h,
 			}
 
 			got, err := s.GetGroupByID(tt.args.id)

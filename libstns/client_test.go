@@ -54,10 +54,14 @@ func TestClient_Request(t *testing.T) {
 				fmt.Fprintf(w, tt.responseBody)
 			}))
 			defer ts.Close()
-			h := &client{
-				ApiEndpoint: ts.URL,
-				opt:         tt.opt,
+			h, err := newClient(
+				ts.URL,
+				tt.opt,
+			)
+			if err != nil {
+				t.Error(err)
 			}
+
 			got, err := h.Request(tt.path, tt.query)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Client.Request() error = %v, wantErr %v", err, tt.wantErr)
