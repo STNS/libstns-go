@@ -32,6 +32,7 @@ var DefaultRetry = 3
 type client struct {
 	ApiEndpoint string
 	opt         *Options
+	httpClient  *http.Client
 }
 
 type Response struct {
@@ -57,9 +58,39 @@ func newClient(endpoint string, opt *Options) (*client, error) {
 		opt.RequestRetry = DefaultRetry
 	}
 
+	retryclient := retryablehttp.NewClient()
+	retryclient.RetryMax = opt.RequestRetry
+
+	httpClient := retryclient.StandardClient()
+
+	tr := &http.Transport{
+		Dial: (&net.Dialer{
+			Timeout: time.Duration(opt.RequestTimeout) * time.Second,
+		}).Dial,
+	}
+	if strings.Index(endpoint, "https") == 0 {
+		tc, err := tlsConfig(opt)
+		if err != nil {
+			logrus.Errorf("make tls config error:%s", err.Error())
+			return nil, err
+		}
+
+		tr.TLSClientConfig = tc
+	}
+
+	tr.Proxy = http.ProxyFromEnvironment
+	if opt.HttpProxy != "" {
+		proxyUrl, err := url.Parse(opt.HttpProxy)
+		if err == nil {
+			tr.Proxy = http.ProxyURL(proxyUrl)
+		}
+	}
+
+	httpClient.Transport = tr
 	return &client{
 		ApiEndpoint: endpoint,
 		opt:         opt,
+		httpClient:  httpClient,
 	}, nil
 }
 func (h *client) RequestURL(requestPath, query string) (*url.URL, error) {
@@ -96,34 +127,7 @@ func (h *client) Request(path, query string) (*Response, error) {
 	h.setHeaders(req)
 	h.setBasicAuth(req)
 
-	tr := &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout: time.Duration(h.opt.RequestTimeout) * time.Second,
-		}).Dial,
-	}
-	if strings.Index(h.ApiEndpoint, "https") == 0 {
-		tc, err := h.tlsConfig()
-		if err != nil {
-			logrus.Errorf("make tls config error:%s", err.Error())
-			return nil, err
-		}
-
-		tr.TLSClientConfig = tc
-	}
-
-	tr.Proxy = http.ProxyFromEnvironment
-	if h.opt.HttpProxy != "" {
-		proxyUrl, err := url.Parse(h.opt.HttpProxy)
-		if err == nil {
-			tr.Proxy = http.ProxyURL(proxyUrl)
-		}
-	}
-	retryclient := retryablehttp.NewClient()
-	retryclient.RetryMax = h.opt.RequestRetry
-
-	client := retryclient.StandardClient()
-	client.Transport = tr
-	resp, err := client.Do(req)
+	resp, err := h.httpClient.Do(req)
 	if err != nil {
 		logrus.Errorf("http request error:%s", err.Error())
 		return nil, err
@@ -186,12 +190,12 @@ func (h *client) setBasicAuth(req *http.Request) {
 	}
 }
 
-func (h *client) tlsConfig() (*tls.Config, error) {
-	tlsConfig := &tls.Config{InsecureSkipVerify: h.opt.SkipSSLVerify}
-	if h.opt.TLS.CA != "" {
+func tlsConfig(opt *Options) (*tls.Config, error) {
+	tlsConfig := &tls.Config{InsecureSkipVerify: opt.SkipSSLVerify}
+	if opt.TLS.CA != "" {
 		CA_Pool := x509.NewCertPool()
 
-		severCert, err := ioutil.ReadFile(h.opt.TLS.CA)
+		severCert, err := ioutil.ReadFile(opt.TLS.CA)
 		if err != nil {
 			return nil, err
 		}
@@ -200,8 +204,8 @@ func (h *client) tlsConfig() (*tls.Config, error) {
 		tlsConfig.RootCAs = CA_Pool
 	}
 
-	if h.opt.TLS.Cert != "" && h.opt.TLS.Key != "" {
-		x509Cert, err := tls.LoadX509KeyPair(h.opt.TLS.Cert, h.opt.TLS.Key)
+	if opt.TLS.Cert != "" && opt.TLS.Key != "" {
+		x509Cert, err := tls.LoadX509KeyPair(opt.TLS.Cert, opt.TLS.Key)
 		if err != nil {
 			return nil, err
 		}
