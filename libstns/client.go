@@ -67,7 +67,7 @@ func newClient(endpoint string, opt *Options) (*client, error) {
 		Dial: (&net.Dialer{
 			Timeout: time.Duration(opt.RequestTimeout) * time.Second,
 		}).Dial,
-		DisableKeepAlives: opt.HttpKeepalive,
+		DisableKeepAlives: !opt.HttpKeepalive,
 	}
 	if strings.Index(endpoint, "https") == 0 {
 		tc, err := tlsConfig(opt)
