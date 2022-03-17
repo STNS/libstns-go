@@ -61,8 +61,9 @@ type Options struct {
 	UserAgent          string
 	SkipSSLVerify      bool `env:"STNS_SKIP_VERIFY"`
 	HttpProxy          string
-	RequestTimeout     int `env:"STNS_REQUEST_TIMEOUT"`
-	RequestRetry       int `env:"STNS_REQUEST_RETRY"`
+	HttpKeepalive      bool `env:"STNS_HTTP_KEEPALIVE"`
+	RequestTimeout     int  `env:"STNS_REQUEST_TIMEOUT"`
+	RequestRetry       int  `env:"STNS_REQUEST_RETRY"`
 	HttpHeaders        map[string]string
 	TLS                TLS
 	PrivatekeyPath     string `env:"STNS_PRIVATE_KEY" envDefault:"~/.ssh/id_rsa"`
