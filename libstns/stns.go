@@ -130,6 +130,10 @@ func (s *STNS) GetUserByName(name string) (*model.User, error) {
 		return nil, err
 	}
 
+	if len(v) == 0 {
+		return nil, errors.New("user not found")
+	}
+
 	return v[0], nil
 }
 
@@ -141,6 +145,10 @@ func (s *STNS) GetUserByID(id int) (*model.User, error) {
 	v := []*model.User{}
 	if err := json.Unmarshal(r.Body, &v); err != nil {
 		return nil, err
+	}
+
+	if len(v) == 0 {
+		return nil, errors.New("user not found")
 	}
 
 	return v[0], nil
@@ -169,6 +177,10 @@ func (s *STNS) GetGroupByName(name string) (*model.Group, error) {
 		return nil, err
 	}
 
+	if len(v) == 0 {
+		return nil, errors.New("group not found")
+	}
+
 	return v[0], nil
 }
 
@@ -180,6 +192,10 @@ func (s *STNS) GetGroupByID(id int) (*model.Group, error) {
 	v := []*model.Group{}
 	if err := json.Unmarshal(r.Body, &v); err != nil {
 		return nil, err
+	}
+
+	if len(v) == 0 {
+		return nil, errors.New("group not found")
 	}
 
 	return v[0], nil
