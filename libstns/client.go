@@ -1,6 +1,7 @@
 package libstns
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -77,6 +78,18 @@ func newClient(endpoint string, opt *Options) (*client, error) {
 		}
 
 		tr.TLSClientConfig = tc
+	}
+
+	if strings.Index(endpoint, "unix") == 0 {
+		u, err := url.Parse(endpoint)
+		if err != nil {
+			logrus.Errorf("unix schema URL parse error:%s", err.Error())
+			return nil, err
+		}
+		tr.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
+			return net.Dial("unix", u.Path)
+		}
+		endpoint = "http://unix"
 	}
 
 	tr.Proxy = http.ProxyFromEnvironment
