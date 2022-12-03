@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/caarlos0/env"
-	"github.com/hashicorp/go-retryablehttp"
+	"github.com/june07/go-retryablehttp"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
