@@ -66,7 +66,7 @@ type Options struct {
 	RequestRetry       int  `env:"STNS_REQUEST_RETRY"`
 	HttpHeaders        map[string]string
 	TLS                TLS
-	PrivatekeyPath     string `env:"STNS_PRIVATE_KEY" envDefault:"~/.ssh/id_rsa"`
+	PrivatekeyPath     string `env:"STNS_PRIVATE_KEY"`
 	PrivatekeyPassword string `env:"STNS_PRIVATE_KEY_PASSWORD"`
 }
 
@@ -74,7 +74,6 @@ func NewSTNS(endpoint string, opt *Options) (*STNS, error) {
 	if opt == nil {
 		opt = &Options{}
 	}
-
 	s := &STNS{
 		popChallengeCode:   DefaultPopChallengeCode,
 		storeChallengeCode: DefaultStoreChallengeCode,

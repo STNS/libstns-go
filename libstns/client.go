@@ -43,10 +43,14 @@ type Response struct {
 }
 
 func newClient(endpoint string, opt *Options) (*client, error) {
-
 	if err := env.Parse(opt); err != nil {
 		return nil, err
 	}
+
+	if opt.PrivatekeyPath == "" {
+		opt.PrivatekeyPath = "~/.ssh/id_rsa"
+	}
+
 	if opt.UserAgent == "" {
 		opt.UserAgent = fmt.Sprintf("%s/%s", "libstns-go", version)
 	}
