@@ -12,6 +12,6 @@ require (
 	github.com/onsi/gomega v1.24.1 // indirect
 	github.com/sirupsen/logrus v1.9.0
 	github.com/thoas/go-funk v0.9.2
-	golang.org/x/crypto v0.3.0
+	golang.org/x/crypto v0.4.0
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 )
