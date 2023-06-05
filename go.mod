@@ -10,7 +10,7 @@ require (
 	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.24.1 // indirect
-	github.com/sirupsen/logrus v1.9.2
+	github.com/sirupsen/logrus v1.9.3
 	github.com/thoas/go-funk v0.9.3
 	golang.org/x/crypto v0.9.0
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
