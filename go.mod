@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/STNS/STNS/v2 v2.2.8
 	github.com/caarlos0/env v3.5.0+incompatible
-	github.com/hashicorp/go-retryablehttp v0.7.4
+	github.com/hashicorp/go-retryablehttp v0.7.5
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
 	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/onsi/ginkgo v1.16.5 // indirect
