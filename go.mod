@@ -3,13 +3,13 @@ module github.com/STNS/libstns-go
 go 1.23.2
 
 require (
-	github.com/STNS/STNS/v2 v2.2.12
+	github.com/STNS/STNS/v2 v2.2.15
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/sirupsen/logrus v1.9.3
 	github.com/thoas/go-funk v0.9.3
-	golang.org/x/crypto v0.25.0
+	golang.org/x/crypto v0.28.0
 )
 
 require (
@@ -25,7 +25,7 @@ require (
 	github.com/onsi/gomega v1.24.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
-	golang.org/x/sys v0.22.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0 // indirect
 	gopkg.in/redis.v5 v5.2.9 // indirect
 )
