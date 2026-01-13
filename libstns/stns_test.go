@@ -3,7 +3,6 @@ package libstns
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -71,7 +70,7 @@ func TestSTNS_ListUser(t *testing.T) {
 						if err != nil {
 							t.Error(err)
 						}
-						fmt.Fprintf(w, string(rp))
+						w.Write(rp)
 					}
 				}
 			}))
@@ -147,7 +146,7 @@ func TestSTNS_GetUserByName(t *testing.T) {
 					if err != nil {
 						t.Error(err)
 					}
-					fmt.Fprintf(w, string(rp))
+					w.Write(rp)
 
 					w.WriteHeader(http.StatusOK)
 				} else {
@@ -226,7 +225,7 @@ func TestSTNS_GetUserByID(t *testing.T) {
 					if err != nil {
 						t.Error(err)
 					}
-					fmt.Fprintf(w, string(rp))
+					w.Write(rp)
 
 					w.WriteHeader(http.StatusOK)
 				} else {
@@ -317,7 +316,7 @@ func TestSTNS_ListGroup(t *testing.T) {
 						if err != nil {
 							t.Error(err)
 						}
-						fmt.Fprintf(w, string(rp))
+						w.Write(rp)
 					}
 				}
 			}))
@@ -392,7 +391,7 @@ func TestSTNS_GetGroupByName(t *testing.T) {
 					if err != nil {
 						t.Error(err)
 					}
-					fmt.Fprintf(w, string(rp))
+					w.Write(rp)
 
 					w.WriteHeader(http.StatusOK)
 				} else {
@@ -471,7 +470,7 @@ func TestSTNS_GetGroupByID(t *testing.T) {
 					if err != nil {
 						t.Error(err)
 					}
-					fmt.Fprintf(w, string(rp))
+					w.Write(rp)
 
 					w.WriteHeader(http.StatusOK)
 				} else {

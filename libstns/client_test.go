@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"reflect"
 	"testing"
 )
@@ -51,7 +50,7 @@ func TestClient_Request(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.responseCode)
-				fmt.Fprintf(w, tt.responseBody)
+				fmt.Fprint(w, tt.responseBody)
 			}))
 			defer ts.Close()
 			h, err := newClient(
@@ -74,7 +73,7 @@ func TestClient_Request(t *testing.T) {
 	}
 }
 
-func TestnewClient(t *testing.T) {
+func Test_newClient(t *testing.T) {
 	type args struct {
 		endpoint string
 		opt      *Options
@@ -93,6 +92,7 @@ func TestnewClient(t *testing.T) {
 			want: &client{
 				ApiEndpoint: "http://localhost",
 				opt: &Options{
+					PrivatekeyPath: "~/.ssh/id_rsa",
 					UserAgent:      "libstns-go/0.0.1",
 					RequestTimeout: 15,
 					RequestRetry:   3,
@@ -112,6 +112,7 @@ func TestnewClient(t *testing.T) {
 			want: &client{
 				ApiEndpoint: "http://localhost",
 				opt: &Options{
+					PrivatekeyPath: "~/.ssh/id_rsa",
 					UserAgent:      "libstns-go/update",
 					RequestTimeout: 30,
 					RequestRetry:   6,
@@ -126,6 +127,7 @@ func TestnewClient(t *testing.T) {
 			want: &client{
 				ApiEndpoint: "http://localhost",
 				opt: &Options{
+					PrivatekeyPath: "~/.ssh/id_rsa",
 					UserAgent:      "libstns-go/0.0.1",
 					RequestTimeout: 15,
 					RequestRetry:   3,
@@ -141,13 +143,19 @@ func TestnewClient(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if len(tt.envs) > 0 {
-				for k, v := range tt.envs {
-					os.Setenv(k, v)
-				}
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
 			}
-			if got, _ := newClient(tt.args.endpoint, tt.args.opt); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newClient() = %v, want %v", got, tt.want)
+			got, err := newClient(tt.args.endpoint, tt.args.opt)
+			if err != nil {
+				t.Errorf("newClient() error = %v", err)
+				return
+			}
+			if got.ApiEndpoint != tt.want.ApiEndpoint {
+				t.Errorf("newClient() ApiEndpoint = %v, want %v", got.ApiEndpoint, tt.want.ApiEndpoint)
+			}
+			if !reflect.DeepEqual(got.opt, tt.want.opt) {
+				t.Errorf("newClient() opt = %v, want %v", got.opt, tt.want.opt)
 			}
 		})
 	}

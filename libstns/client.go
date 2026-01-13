@@ -43,6 +43,9 @@ type Response struct {
 }
 
 func newClient(endpoint string, opt *Options) (*client, error) {
+	if opt == nil {
+		opt = &Options{}
+	}
 	if err := env.Parse(opt); err != nil {
 		return nil, err
 	}
