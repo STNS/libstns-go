@@ -3,7 +3,7 @@ module github.com/STNS/libstns-go
 go 1.25.5
 
 require (
-	github.com/STNS/STNS/v2 v2.2.15
+	github.com/STNS/STNS/v2 v2.2.16
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/k0kubun/pp v3.0.1+incompatible
