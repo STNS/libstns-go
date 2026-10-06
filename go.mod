@@ -7,7 +7,7 @@ require (
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/k0kubun/pp v3.0.1+incompatible
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.4
 	github.com/thoas/go-funk v0.9.3
 	golang.org/x/crypto v0.52.0
 )
