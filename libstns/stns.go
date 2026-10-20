@@ -6,9 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/user"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/STNS/STNS/v2/model"
@@ -24,19 +25,47 @@ type STNS struct {
 	popChallengeCode   func(string) ([]byte, error)
 }
 
+// user must be a single path element so the code stays directly under os.TempDir().
+func challengeCodePath(user string) (string, error) {
+	if user == "" || user == "." || user == ".." || strings.ContainsAny(user, "/\\\x00") {
+		return "", errors.New("invalid user name")
+	}
+	return filepath.Join(os.TempDir(), user), nil
+}
+
 func DefaultStoreChallengeCode(user string, code []byte) error {
-	fmt.Sprint(path.Join(os.TempDir(), user))
-	err := ioutil.WriteFile(path.Join(os.TempDir(), user), code, 0600)
+	p, err := challengeCodePath(user)
 	if err != nil {
 		return err
 	}
-	return nil
+	if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(code); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 func DefaultPopChallengeCode(user string) ([]byte, error) {
-	p := path.Join(os.TempDir(), user)
+	p, err := challengeCodePath(user)
+	if err != nil {
+		return nil, err
+	}
+	fi, err := os.Lstat(p)
+	if err != nil {
+		return nil, err
+	}
+	if !fi.Mode().IsRegular() || !isOwnedByCurrentUser(fi) {
+		return nil, errors.New("invalid challenge code file")
+	}
 	defer os.Remove(p)
-	return ioutil.ReadFile(p)
+	return os.ReadFile(p)
 }
 
 func DefaultMakeChallengeCode() ([]byte, error) {
@@ -120,7 +149,7 @@ func (s *STNS) ListUser() ([]*model.User, error) {
 }
 
 func (s *STNS) GetUserByName(name string) (*model.User, error) {
-	r, err := s.client.Request(usersEndpoint, fmt.Sprintf("name=%s", name))
+	r, err := s.client.Request(usersEndpoint, url.Values{"name": {name}}.Encode())
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +196,7 @@ func (s *STNS) ListGroup() ([]*model.Group, error) {
 }
 
 func (s *STNS) GetGroupByName(name string) (*model.Group, error) {
-	r, err := s.client.Request(groupsEndpoint, fmt.Sprintf("name=%s", name))
+	r, err := s.client.Request(groupsEndpoint, url.Values{"name": {name}}.Encode())
 	if err != nil {
 		return nil, err
 	}

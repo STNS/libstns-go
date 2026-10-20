@@ -1,10 +1,13 @@
 package libstns
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -123,6 +126,19 @@ func TestSTNS_GetUserByName(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "special characters",
+			args: args{
+				name: "foo&id=1#bar",
+			},
+			want: &model.User{
+				Base: model.Base{
+					ID:   3,
+					Name: "foo&id=1#bar",
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "notfound",
 			args: args{
 				name: "example2",
@@ -131,15 +147,18 @@ func TestSTNS_GetUserByName(t *testing.T) {
 			wantErr: true,
 		},
 	}
+	ids := map[string]int{"example1": 1, "foo&id=1#bar": 3}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.FormValue("name") == "example1" && r.URL.String() == "/users?name=example1" {
+				q := r.URL.Query()
+				name := q.Get("name")
+				if id, ok := ids[name]; ok && r.URL.Path == "/users" && len(q) == 1 {
 					rp, err := json.Marshal([]*model.User{
 						&model.User{
 							Base: model.Base{
-								ID:   1,
-								Name: "example1",
+								ID:   id,
+								Name: name,
 							},
 						}})
 
@@ -368,6 +387,19 @@ func TestSTNS_GetGroupByName(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "special characters",
+			args: args{
+				name: "foo&id=1#bar",
+			},
+			want: &model.Group{
+				Base: model.Base{
+					ID:   3,
+					Name: "foo&id=1#bar",
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "notfound",
 			args: args{
 				name: "example2",
@@ -376,15 +408,18 @@ func TestSTNS_GetGroupByName(t *testing.T) {
 			wantErr: true,
 		},
 	}
+	ids := map[string]int{"example1": 1, "foo&id=1#bar": 3}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.FormValue("name") == "example1" && r.URL.String() == "/groups?name=example1" {
+				q := r.URL.Query()
+				name := q.Get("name")
+				if id, ok := ids[name]; ok && r.URL.Path == "/groups" && len(q) == 1 {
 					rp, err := json.Marshal([]*model.Group{
 						&model.Group{
 							Base: model.Base{
-								ID:   1,
-								Name: "example1",
+								ID:   id,
+								Name: name,
 							},
 						}})
 
@@ -682,6 +717,136 @@ func TestSTNS_Verify(t *testing.T) {
 			}
 			if err := c.Verify(tt.args.msg, tt.args.publicKeyBytes, tt.args.signature); (err != nil) != tt.wantErr {
 				t.Errorf("STNS.Verify() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestDefaultStoreAndPopChallengeCode(t *testing.T) {
+	tests := []struct {
+		name     string
+		user     string
+		existing []byte
+	}{
+		{
+			name: "ok",
+			user: "example1",
+		},
+		{
+			name:     "overwrite existing file",
+			user:     "example1",
+			existing: []byte("old"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			t.Setenv("TMPDIR", dir)
+			p := filepath.Join(dir, tt.user)
+			if tt.existing != nil {
+				if err := os.WriteFile(p, tt.existing, 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			code := []byte("challenge")
+			if err := DefaultStoreChallengeCode(tt.user, code); err != nil {
+				t.Fatalf("DefaultStoreChallengeCode() error = %v", err)
+			}
+			fi, err := os.Stat(p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if fi.Mode().Perm() != 0600 {
+				t.Errorf("perm = %v, want 0600", fi.Mode().Perm())
+			}
+
+			got, err := DefaultPopChallengeCode(tt.user)
+			if err != nil {
+				t.Fatalf("DefaultPopChallengeCode() error = %v", err)
+			}
+			if !bytes.Equal(got, code) {
+				t.Errorf("DefaultPopChallengeCode() = %s, want %s", got, code)
+			}
+			if _, err := os.Lstat(p); !os.IsNotExist(err) {
+				t.Errorf("file still exists: %v", err)
+			}
+		})
+	}
+}
+
+func TestDefaultChallengeCode_InvalidUser(t *testing.T) {
+	tests := []struct {
+		name string
+		user string
+	}{
+		{name: "empty", user: ""},
+		{name: "dot", user: "."},
+		{name: "dotdot", user: ".."},
+		{name: "parent", user: "../x"},
+		{name: "separator", user: "a/b"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("TMPDIR", t.TempDir())
+			if err := DefaultStoreChallengeCode(tt.user, []byte("challenge")); err == nil {
+				t.Error("DefaultStoreChallengeCode() error = nil, want error")
+			}
+			if _, err := DefaultPopChallengeCode(tt.user); err == nil {
+				t.Error("DefaultPopChallengeCode() error = nil, want error")
+			}
+		})
+	}
+}
+
+func TestDefaultPopChallengeCode_NotRegularFile(t *testing.T) {
+	tests := []struct {
+		name  string
+		setup func(t *testing.T, p string)
+	}{
+		{
+			name: "symlink",
+			setup: func(t *testing.T, p string) {
+				target := filepath.Join(t.TempDir(), "target")
+				if err := os.WriteFile(target, []byte("secret"), 0600); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Symlink(target, p); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+		{
+			name: "directory",
+			setup: func(t *testing.T, p string) {
+				if err := os.Mkdir(p, 0700); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			t.Setenv("TMPDIR", dir)
+			p := filepath.Join(dir, "example1")
+			tt.setup(t, p)
+
+			got, err := DefaultPopChallengeCode("example1")
+			if err == nil {
+				t.Errorf("DefaultPopChallengeCode() error = nil, want error")
+			}
+			if got != nil {
+				t.Errorf("DefaultPopChallengeCode() = %s, want nil", got)
+			}
+			if _, err := os.Lstat(p); err != nil {
+				t.Errorf("entry was removed: %v", err)
+			}
+			if target, err := os.Readlink(p); err == nil {
+				b, err := os.ReadFile(target)
+				if err != nil || string(b) != "secret" {
+					t.Errorf("link target changed: %s, %v", b, err)
+				}
 			}
 		})
 	}
